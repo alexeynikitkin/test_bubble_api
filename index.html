@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projects with Pagination</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 10px 15px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .pagination button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+<h1>Projects</h1>
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Description</th>
+    </tr>
+    </thead>
+    <tbody id="projects-table">
+    <!-- Data will be inserted here dynamically -->
+    </tbody>
+</table>
+<div class="pagination">
+    <button id="prev-btn" disabled>Previous</button>
+    <span id="page-info">Page 1</span>
+    <button id="next-btn">Next</button>
+</div>
+
+<script>
+    const API_URL = "https://toggle-app.bubbleapps.io/version-test/api/1.1/obj/projects";
+    const itemsPerPage = 10;
+
+    let currentPage = 1; // Current page number
+    let cursor = null;  // Current cursor (Bubble API uses `cursor` for pagination)
+
+    const projectsTable = document.getElementById('projects-table');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const pageInfo = document.getElementById('page-info');
+
+    // Fetch data from API
+    const fetchProjects = async () => {
+        try {
+            const response = await fetch(`${API_URL}?limit=${itemsPerPage}&cursor=${cursor || ''}`);
+            const data = await response.json();
+
+            // Populate table with data
+            const projects = data.response.results;
+            const hasNext = data.response.remaining; // Indicates if there are more pages
+            cursor = data.response.cursor; // Bubble API returns a cursor for the next page
+
+            populateTable(projects);
+            updatePaginationControls(hasNext);
+        } catch (error) {
+            console.error("Error fetching projects:", error);
+        }
+    };
+
+    // Populate the table with project data
+    const populateTable = (projects) => {
+        projectsTable.innerHTML = ''; // Clear previous data
+        projects.forEach(project => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+          <td>${project._id}</td>
+          <td>${project.Name || 'N/A'}</td>
+          <td>${project.description || 'N/A'}</td>
+        `;
+            projectsTable.appendChild(row);
+        });
+    };
+
+    // Update pagination buttons and info
+    const updatePaginationControls = (hasNext) => {
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = !hasNext;
+        pageInfo.textContent = `Page ${currentPage}`;
+    };
+
+    // Event listeners for pagination buttons
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            cursor = (currentPage - 1) * itemsPerPage; // Adjust cursor for previous page
+            fetchProjects();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        currentPage++;
+        cursor = (currentPage + 1) * itemsPerPage;
+        fetchProjects(); // Cursor is handled dynamically for the next page
+    });
+
+    // Fetch initial data
+    fetchProjects();
+</script>
+</body>
+</html>
